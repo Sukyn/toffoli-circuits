@@ -34,6 +34,19 @@ This writes `circuit.json`, a list of circuit operations implementing `t <- t + 
 
 `--max-rec 1` expands the first product decomposition and keeps deeper product subcircuits as shortcut blocks. Omit this option for full expansion into elementary gates; the number of wires stays the same.
 
+See below for examples with the other constructions:
+
+```sh
+# Divide-and-conquer
+python -m python_algorithms.main circuit 5 4 --algorithm divide-and-conquer --max-rec 1 -o divide.json
+
+# Borrowed-wire construction
+python -m python_algorithms.main circuit 5 4 --algorithm borrow --max-rec 1 -o borrow.json
+
+# Simple polarization (requires d <= p - 2)
+python -m python_algorithms.main circuit 7 4 --algorithm simple_polarization -o polarization.json
+```
+
 ### 3. Export the circuit diagram
 
 ```sh
