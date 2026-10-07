@@ -2,7 +2,7 @@
 
 from math import inf
 
-from .utils import power_cost
+from .utils import max_degree, power_cost
 
 
 def add_group(previous, costs):
@@ -58,7 +58,7 @@ def add_group(previous, costs):
     ]
 
 
-def count_tables(p, max_d=128, borrowed=0, algorithm=None):
+def count_tables(q, max_d=128, borrowed=0, algorithm=None):
     """Build tables of (transposition count, group sizes).
 
     Divide entries use table[d]; Borrow-and-conquer uses table[d + b][d]
@@ -67,7 +67,7 @@ def count_tables(p, max_d=128, borrowed=0, algorithm=None):
 
     Example: build both tables over F_5 (because it's the simplest one), through four controls. 
     A degree-2 polarization costs 6 in powers alone; degree 3 costs 8. These are the
-    only possible polarization degrees because p-2 = 3.
+    only possible polarization degrees because max_degree(5) = 3.
 
     Divide starts with C_1 = 0 and C_2 = 6. For d=3, partition d-1=2:
         (2,):   6 + 3*C_2 = 24.
@@ -112,7 +112,7 @@ def count_tables(p, max_d=128, borrowed=0, algorithm=None):
     def polarization(costs):
         """Price every parent using the supplied preparation costs.
 
-        With p=5 and costs=[inf, 0, 6], start from partitions[0]=(0, ()).
+        With q=5 and costs=[inf, 0, 6], start from partitions[0]=(0, ()).
         Adding group 1, with weight 3, gives partition costs 0 at size 1
         and 18 at size 2. Add the degree-2 power cost 6: the candidates
         for d=2 and d=3 are 6 and 24.
@@ -125,12 +125,12 @@ def count_tables(p, max_d=128, borrowed=0, algorithm=None):
         """
         best = [(inf, ())] * (len(costs) + 1)
         partitions = [(0, ())] + [(inf, ())] * (len(costs) - 1)
-        for groups in range(1, min(p - 3, len(costs) - 1) + 1):
+        for groups in range(1, min(max_degree(q) - 1, len(costs) - 1) + 1):
             # The new group pays for preparation, Gray flips, and restoration:
             # group 1 has weight 3, group 2 has weight 4, group 3 has weight 6.
             weight = 2 + 2 ** (groups - 1)
             partitions = add_group(partitions, [weight * c for c in costs])
-            powers = power_cost(p, groups + 1)
+            powers = power_cost(q, groups + 1)
             for d in range(groups + 1, len(best)):
                 cost, sizes = partitions[d - 1]
                 cost += powers
@@ -140,12 +140,12 @@ def count_tables(p, max_d=128, borrowed=0, algorithm=None):
         return best
 
     # Degree two is polarization for every construction.
-    divide = [(inf, ()), (0, ()), (power_cost(p, 2), (1,))]
+    divide = [(inf, ()), (0, ()), (power_cost(q, 2), (1,))]
     if algorithm in (None, "divide-and-conquer"):
         for d in range(3, max_d + 1):
             divide.append(polarization([cost for cost, _ in divide])[d])
 
-    tables = {"p": p, "divide-and-conquer": divide}
+    tables = {"q": q, "divide-and-conquer": divide}
     if algorithm in (None, "borrow-and-conquer"):
         # On diagonal N=d+b, preparations use N-1; final ladder updates use N.
         previous = [inf]
@@ -243,7 +243,7 @@ def construction(tables, d, borrowed, algorithm):
     if d <= 2:
         return tables["divide-and-conquer"][d]
     if algorithm == "simple_polarization":
-        return power_cost(tables["p"], d), (1,) * (d - 1)
+        return power_cost(tables["q"], d), (1,) * (d - 1)
     if algorithm == "binary-borrowed-ladder":
         return ladder(d), (2,) + (1,) * (d - 2)
     if algorithm == "borrow":
@@ -252,10 +252,10 @@ def construction(tables, d, borrowed, algorithm):
     return table[d + borrowed][d] if algorithm == "borrow-and-conquer" else table[d]
 
 
-def compute_counts(p, max_d=128):
+def compute_counts(q, max_d=128):
     """Return rows (d, C_d, C_d^b, C_d^m), with no extra wires.
 
-    Example: for p=5 through d=4, Divide costs 0, 6, 8, 26. The mixed
+    Example: for q=5 through d=4, Divide costs 0, 6, 8, 26. The mixed
     entries on diagonals N=d have the same costs. Borrow also starts
     at 0 and 6, then uses its wrapper with ladder costs L_1=0, L_2=6:
         d=3: 3*L_2 + 4*L_1 + 4*6 = 18 + 0 + 24 = 42.
@@ -265,7 +265,7 @@ def compute_counts(p, max_d=128):
     >>> compute_counts(5, 4)
     [(1, 0, 0, 0), (2, 6, 6, 6), (3, 8, 42, 8), (4, 26, 66, 26)]
     """
-    tables = count_tables(p, max_d)
+    tables = count_tables(q, max_d)
     divide, mixed = tables["divide-and-conquer"], tables["borrow-and-conquer"]
     return [(d, divide[d][0], construction(tables, d, 0, "borrow")[0], mixed[d][d][0])
             for d in range(1, max_d + 1)]

@@ -1,19 +1,17 @@
 """Construct circuits for parameters checked by main.py."""
 
 from functools import lru_cache
-from itertools import accumulate
 from math import factorial
 
 from more_itertools import split_into
-from sympy import primitive_root
 from sympy.combinatorics import GrayCode, Permutation
 
 from .algorithms_count import construction, count_tables
-from .utils import power_order
+from .utils import field, power_order
 
 
 @lru_cache(maxsize=128)
-def _power_cycles(p, order):
+def _power_cycles(q, order):
     """Share immutable multiplier cycles across circuit constructions.
 
     For p=5 and order=4, the primitive root is 2. The multiplier is
@@ -25,13 +23,14 @@ def _power_cycles(p, order):
     >>> _power_cycles(5, 4)
     (2, ((1, 2, 4, 3),))
     """
-    multiplier = pow(int(primitive_root(p)), (p - 1) // order, p)
-    cycles = Permutation([multiplier * x % p for x in range(p)]).cyclic_form
-    return multiplier, tuple(tuple(cycle) for cycle in cycles)
+    K = field(q)
+    multiplier = K.primitive_element ** ((q - 1) // order)
+    cycles = Permutation((multiplier * K.elements).tolist()).cyclic_form
+    return int(multiplier), tuple(tuple(cycle) for cycle in cycles)
 
 
-def generate_circuit(p, d, algorithm="borrow-and-conquer", max_rec=None, borrowed=0):
-    """Build t += c_1 ... c_d over F_p, restoring controls and borrowed wires.
+def generate_circuit(q, d, algorithm="borrow-and-conquer", max_rec=None, borrowed=0):
+    """Build t += c_1 ... c_d over F_q, restoring controls and borrowed wires.
 
     Controls occupy wires 0 through d-1, the target is d, and borrowed
     wires follow it. Borrowed values can be arbitrary; they need not be zero.
@@ -39,7 +38,9 @@ def generate_circuit(p, d, algorithm="borrow-and-conquer", max_rec=None, borrowe
 
     max_rec=0 keeps the whole product; 1 expands its first decomposition.
     Omit max_rec for full expansion. Unary powers always expand completely.
-    simple_polarization requires d <= p-2.
+    simple_polarization requires d <= min(p-1, q-2), where p is the characteristic.
+    JSON elements encode polynomial coefficients as base-p digits; extension
+    fields also record their modulus, with highest-degree coefficients first.
 
     First keep a two-control product as one operation:
 
@@ -98,7 +99,9 @@ def generate_circuit(p, d, algorithm="borrow-and-conquer", max_rec=None, borrowe
     ...     for g in full["operations"])
     True
     """
-    tables = count_tables(p, d, borrowed, algorithm)
+    K = field(q)
+    p = K.characteristic
+    tables = count_tables(q, d, borrowed, algorithm)
     operations = []
 
     def add(controls, target, coefficient):
@@ -113,16 +116,17 @@ def generate_circuit(p, d, algorithm="borrow-and-conquer", max_rec=None, borrowe
         controls, starts a separate operation. Only adjacent matching SUMs
         combine.
         """
-        coefficient %= p
-        # Two consecutive t += a*c updates add their coefficients modulo p.
+        # Field multiplication embeds integer scalars modulo the characteristic.
+        coefficient = K(1) * coefficient
+        # Two consecutive t += a*c updates add their coefficients in the field.
         # For p=5, coefficients 2 and 3 cancel and leave no gate.
         if coefficient and len(controls) == 1 and operations:
             previous = operations[-1]
             if previous.get("controls") == controls and previous["target"] == target:
-                coefficient = (coefficient + operations.pop()["coefficient"]) % p
+                coefficient = coefficient + K(operations.pop()["coefficient"])
         if coefficient:
             operations.append({"op": "add", "controls": controls.copy(), "target": target,
-                               "coefficient": coefficient})
+                               "coefficient": int(coefficient)})
 
     def power(source, target, degree, coefficient):
         """Build Algorithm 1's power addition with star transpositions.
@@ -153,20 +157,22 @@ def generate_circuit(p, d, algorithm="borrow-and-conquer", max_rec=None, borrowe
         The source is restored and the target is 1 + 2**2 = 0 modulo 5.
         degree is at least 2 and coefficient is nonzero modulo p.
         """
-        order = power_order(p, degree)
-        multiplier, cycles = _power_cycles(p, order)
+        order = power_order(q, degree)
+        multiplier, cycles = _power_cycles(q, order)
+        coefficient = K(1) * coefficient
         # SymPy omits fixed points; the only one here is zero, with increment zero.
         for cycle in cycles:
-            a = cycle[0]
+            values = K(cycle)
+            a = values[0]
             # At b = cycle[j], prefix sums x**degree over cycle[:j].
-            prefixes = accumulate(pow(x, degree, p) for x in cycle)
-            for b, prefix in zip(cycle[1:], prefixes):
-                transfer = -coefficient * prefix * pow(b - a, -1, p) % p
+            prefixes = (values ** degree).cumsum()
+            for b, prefix in zip(values[1:], prefixes):
+                transfer = -coefficient * prefix / (b - a)
                 add([source], target, transfer)
-                operations.append({"op": "swap", "wire": source, "a": a, "b": b})
+                operations.append({"op": "swap", "wire": source, "a": int(a), "b": int(b)})
                 add([source], target, -transfer)
         # The swaps implement the multiplier; its inverse restores the source.
-        operations.append({"op": "scale", "wire": source, "coefficient": pow(multiplier, -1, p)})
+        operations.append({"op": "scale", "wire": source, "coefficient": int(K(multiplier) ** -1)})
 
     def split(wires, sizes):
         """Split wire indices into the chosen ordered groups.
@@ -242,7 +248,7 @@ def generate_circuit(p, d, algorithm="borrow-and-conquer", max_rec=None, borrowe
         groups = split(controls[1:], sizes)
         available = controls + borrowed
         k = len(groups) + 1
-        # Fischer's identity cancels every term except the k-factor product.
+        # Fischer's coefficients lie in the prime subfield, so invert modulo p.
         weights = coefficient * pow(2 ** (k - 1) * factorial(k), -1, p) % p
 
         def prepare(index, scale):
@@ -378,4 +384,7 @@ def generate_circuit(p, d, algorithm="borrow-and-conquer", max_rec=None, borrowe
     controls = list(range(d))
     borrowed_wires = list(range(d + 1, d + 1 + borrowed))
     product(controls, d, borrowed_wires, algorithm)
-    return {"p": p, "wire_count": d + 1 + borrowed, "operations": operations}
+    circuit = {"q": q, "wire_count": d + 1 + borrowed, "operations": operations}
+    if K.degree > 1:
+        circuit["modulus"] = K.irreducible_poly.coeffs.tolist()
+    return circuit

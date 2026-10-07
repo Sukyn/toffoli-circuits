@@ -3,6 +3,9 @@
 from itertools import pairwise
 
 from more_itertools import consecutive_groups
+from sympy import Poly, Symbol, latex
+
+from .utils import field
 
 
 STYLES = r"""% TikZiT styles;
@@ -54,7 +57,7 @@ def circuit_to_tikz(circuit):
     modulo 5. The renderer displays 3 as -2; it does not simulate the gate.
 
     >>> circuit = {
-    ...     "p": 5, "wire_count": 2,
+    ...     "q": 5, "wire_count": 2,
     ...     "operations": [
     ...         {"op": "add", "controls": [0], "target": 1, "coefficient": 3}
     ...     ],
@@ -115,7 +118,16 @@ def circuit_to_tikz(circuit):
             for start, end in pairwise(points)
         )
 
-    p = circuit["p"]
+    K = field(circuit.get("q", circuit.get("p")))
+    p = K.characteristic
+
+    def element_label(value):
+        if K.degree == 1:
+            return str(_signed(value, p))
+        # Base-p digits are coefficients of 1, alpha, ... in the JSON basis.
+        coefficients = [_signed(int(c), p) for c in K(value).vector()]
+        return latex(Poly.from_list(coefficients, Symbol("alpha")).as_expr())
+
     wire_count = circuit["wire_count"]
     gates = circuit["operations"]
     y_of = [-row * .7 for row in range(wire_count)]
@@ -132,13 +144,16 @@ def circuit_to_tikz(circuit):
         if kind in {"scale", "swap"}:
             wire = gate["wire"]
             if kind == "scale":
-                label = rf"$\times {_signed(gate['coefficient'], p)}$"
+                coefficient = element_label(gate["coefficient"])
+                text = rf"$\times ({coefficient})$" if K.degree > 1 else rf"$\times {coefficient}$"
             else:
-                label = rf"$X_{{{gate['a'] % p},{gate['b'] % p}}}$"
-            wire_nodes[wire].append(node("cbox", x, y_of[wire], label))
+                a, b = (str(gate[key] % p) if K.degree == 1 else element_label(gate[key])
+                        for key in ("a", "b"))
+                text = rf"$X_{{{a},{b}}}$"
+            wire_nodes[wire].append(node("cbox", x, y_of[wire], text))
             continue
         target_row = gate["target"]
-        coefficient = _signed(gate["coefficient"], p)
+        coefficient = element_label(gate["coefficient"])
         controls = sorted(gate["controls"])
         shortcut = len(controls) > 1
         markers = {row: node("ccontrol", x, y_of[row]) for row in controls}
@@ -148,8 +163,8 @@ def circuit_to_tikz(circuit):
             if len(run) > 3:
                 gap_y = (y_of[run[1]] + y_of[run[2]]) / 2
                 node("cellipsis", x, gap_y, r"$\vdots$")
-        target = node("cplus", x, y_of[target_row], "$-$" if coefficient == -1 else "$+$")
-        if abs(coefficient) != 1:
+        target = node("cplus", x, y_of[target_row], "$-$" if coefficient == "-1" else "$+$")
+        if coefficient not in {"1", "-1"}:
             # When controls straddle the target, use the side with more
             # clearance by placing the label away from the nearest one.
             nearest = min(controls, key=lambda row: (abs(row - target_row), row))

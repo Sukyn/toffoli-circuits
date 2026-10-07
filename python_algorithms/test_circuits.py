@@ -24,7 +24,7 @@ from python_algorithms.circuits_to_tikz import circuit_to_tikz
 
 def simulate(circuit, values):
     """Interpret gate definitions directly, independently of their construction."""
-    p = circuit['p']
+    p = circuit.get('q', circuit.get('p'))
     state = list(values)
     for gate in circuit['operations']:
         kind = gate['op']
@@ -51,7 +51,7 @@ def is_sum(gate):
 
 def assert_product_addition(circuit, values, d):
     expected = list(values)
-    expected[d] = (expected[d] + prod(expected[:d])) % circuit['p']
+    expected[d] = (expected[d] + prod(expected[:d])) % circuit['q']
     assert simulate(circuit, values) == expected, values
 
 
@@ -191,7 +191,7 @@ def test_algorithm_independent_json_contract(algorithm, depth):
         'swap': {'op', 'wire', 'a', 'b'},
     }
     circuit = generate_circuit(7, 3, algorithm, depth, borrowed=2)
-    assert set(circuit) == {'p', 'wire_count', 'operations'}
+    assert set(circuit) == {'q', 'wire_count', 'operations'}
     assert circuit['wire_count'] == 6
     controls = [gate['controls'] for gate in circuit['operations'] if gate['op'] == 'add']
     assert len({id(wires) for wires in controls}) == len(controls)
@@ -214,7 +214,7 @@ def test_one_control_at_zero_depth(algorithm):
         assert_product_addition(circuit, values, 1)
 
 
-@pytest.mark.parametrize('args', ((3, 2), (9, 2), (True, 2), (5, 0), (5, 2.5)))
+@pytest.mark.parametrize('args', ((3, 2), (9, 2), (15, 2), (True, 2), (5, 0), (5, 2.5)))
 def test_invalid_parameters(args, tmp_path):
     assert_cli_error('circuit', *args, '-o', tmp_path / 'circuit.json')
 
@@ -254,7 +254,7 @@ def test_layers_shortcuts_and_gate_order():
     assert re.findall(r'X_\{([0-9]+,[0-9]+)\}', rendered) == expected_swaps
     assert 'cshortcut' in rendered
     signs = re.findall(r'\\node \[style=cplus\].*\{\$([+-])\$\};', rendered)
-    assert signs == ['-' if gate['coefficient'] % circuit['p'] == circuit['p'] - 1 else '+'
+    assert signs == ['-' if gate['coefficient'] % circuit['q'] == circuit['q'] - 1 else '+'
                      for gate in circuit['operations'] if gate['op'] == 'add']
 
 
@@ -316,12 +316,12 @@ def run_cli(command, *args):
 
 
 def test_cli_json_to_tikz(tmp_path):
-    for algorithm in ALGORITHMS:
-        generated = run_cli('circuit', 7, 4, '--algorithm', algorithm,
+    for q, algorithm in product((7, 25), ALGORITHMS):
+        generated = run_cli('circuit', q, 4, '--algorithm', algorithm,
                             '--max-rec', 1, '-o', tmp_path / 'circuit.json')
         assert generated.stdout == ''
         circuit = json.loads((tmp_path / 'circuit.json').read_text())
-        assert circuit == generate_circuit(7, 4, algorithm, max_rec=1)
+        assert circuit == generate_circuit(q, 4, algorithm, max_rec=1)
         run_cli('tikz', tmp_path / 'circuit.json', '-o', tmp_path / 'circuit.tikz')
         assert r'\tikzstyle{ccontrol}' in (tmp_path / 'circuit.tikzstyles').read_text()
         figure = (tmp_path / 'circuit.tikz').read_text()
@@ -336,9 +336,10 @@ def test_cli_json_to_tikz(tmp_path):
 
 def test_count_cli_csv():
     assert run_cli('count', 5, '--max-d', 3).stdout == 'd,Cd,Cd_b,Cd_m\n1,0,0,0\n2,6,6,6\n3,8,42,8\n'
+    assert run_cli('count', 25, '--max-d', 3).stdout == 'd,Cd,Cd_b,Cd_m\n1,0,0,0\n2,32,32,32\n3,48,224,48\n'
 
 
-@pytest.mark.parametrize('args', (('count', '9'), ('count', '5', '--max-d', '0')))
+@pytest.mark.parametrize('args', (('count', '9'), ('count', '15'), ('count', '5', '--max-d', '0')))
 def test_invalid_count_parameters(args):
     assert_cli_error(*args)
 

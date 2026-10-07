@@ -1,6 +1,6 @@
 # Toffoli circuits
 
-Python scripts for counting transpositions, constructing reversible product-addition circuits, and exporting editable TikZiT diagrams over prime fields `p >= 5`.
+Python scripts for counting transpositions, constructing reversible product-addition circuits, and exporting editable TikZiT diagrams over finite fields of characteristic `p >= 5`.
 
 Implements divide-and-conquer, borrowed-wire, and borrow-and-conquer constructions. Requires Python 3.10 or newer.
 
@@ -49,7 +49,7 @@ python -m python_algorithms.main circuit 5 4 --algorithm divide-and-conquer --ma
 # Borrowed-wire construction
 python -m python_algorithms.main circuit 5 4 --algorithm borrow --max-rec 1 -o borrow.json
 
-# Simple polarization (requires d <= p - 2)
+# Simple polarization (requires d <= min(p - 1, q - 2), where q is the field size)
 python -m python_algorithms.main circuit 7 4 --algorithm simple_polarization -o polarization.json
 ```
 

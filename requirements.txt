@@ -1,2 +1,3 @@
 sympy>=1.13
 more-itertools>=10.5
+galois>=0.4.11
