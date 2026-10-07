@@ -4,6 +4,12 @@ Python scripts for counting transpositions, constructing reversible product-addi
 
 Implements divide-and-conquer, borrowed-wire, and borrow-and-conquer constructions. Requires Python 3.10 or newer.
 
+## Lean proofs
+
+The [Lean proofs](lean_proofs/README.md) cover the 24 results in *Reversible Arithmetic with One-Wire Transpositions*, including its appendices.
+
+The simplest proofs were written by hand by one of the authors. The more involved proofs were generated using AI and then simplified by it, before being verified and further simplified by hand by a human author.
+
 ## Usage
 
 Run these commands from the repository directory. First install the dependencies:
