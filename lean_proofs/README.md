@@ -1,6 +1,6 @@
 # Lean proofs
 
-Lean proofs of the 24 results listed below from *Reversible Arithmetic with One-Wire Transpositions*, including its appendices.
+Lean proofs of the 24 results listed below from the STACS version of *Reversible Arithmetic with One-Wire Transpositions*, including its appendices.
 
 ## Build the proofs
 
@@ -34,8 +34,8 @@ Lean and Mathlib versions are pinned.
 
 | Paper result | Subject | Lean files |
 |---|---|---|
-| Lemma 2.3 | Affine conjugacy of local transpositions | [LocalSwapConjugacy](Toffoli/Additions/LocalSwapConjugacy.lean) |
-| Theorem 2.4 | Prime-field universality | [PrimeUniversality](Toffoli/Universality/PrimeUniversality.lean) |
+| Lemma 2.8 | Affine conjugacy of local transpositions | [LocalSwapConjugacy](Toffoli/Additions/LocalSwapConjugacy.lean) |
+| Theorem 2.10 | Prime-field universality | [PrimeUniversality](Toffoli/Universality/PrimeUniversality.lean) |
 | Lemma 3.3 | Two-point transfer circuit | [TwoPointTransfer](Toffoli/Additions/TwoPointTransfer.lean) |
 | Theorem 3.4 | Accumulator-form characterization | [MultiControlZeroSumIff](Toffoli/Polynomial/MultiControlZeroSumIff.lean) |
 | Theorem 3.5 | Cycle synthesis characterization | [CycleAddition](Toffoli/Additions/CycleAddition.lean) |
@@ -48,13 +48,13 @@ Lean and Mathlib versions are pinned.
 | Proposition 5.4 | Borrow construction on the original wires | [BorrowOnly](Toffoli/Borrow/BorrowOnly.lean) |
 | Proposition 6.3 | Borrow-and-conquer correctness and comparison | [BorrowAndConquer](Toffoli/Mixed/BorrowAndConquer.lean) |
 | Theorem 7.1 | Summary of asymptotic upper bounds | [DirectProductBound](Toffoli/Divide/DirectProductBound.lean), [DividePolynomialCircuit](Toffoli/Divide/DividePolynomialCircuit.lean), [BorrowLinear](Toffoli/Borrow/BorrowLinear.lean), [MixedLinearCircuit](Toffoli/Mixed/MixedLinearCircuit.lean) |
-| Theorem A.1 | Universality over odd composite alphabets | [ModularUniversality](Toffoli/Universality/ModularUniversality.lean) |
-| Corollary A.2 | Universality over finite fields | [FiniteFieldUniversality](Toffoli/Universality/FiniteFieldUniversality.lean) |
-| Theorem B.1 | Polynomial synthesis through linear powers | [PolynomialSynthesis](Toffoli/Polynomial/PolynomialSynthesis.lean) |
-| Proposition B.2 | Reduced-polynomial criterion | [PolynomialZeroSumIff](Toffoli/Polynomial/PolynomialZeroSumIff.lean), [PolynomialLowDegreeSynthesis](Toffoli/Polynomial/PolynomialLowDegreeSynthesis.lean) |
-| Corollary B.3 | Odd function synthesis | [OddFunctionAddition](Toffoli/Additions/OddFunctionAddition.lean) |
-| Proposition B.4 | Quadratic rank and synthesis count | [QuadraticAdditions](Toffoli/Quadratic/QuadraticAdditions.lean) |
-| Proposition C.1 | Optimal preparation schedule | [GroupedSchedule](Toffoli/Schedules/GroupedSchedule.lean) |
-| Lemma D.1 | Balanced grouping polynomial growth | [DividePolynomial](Toffoli/Divide/DividePolynomial.lean) |
-| Lemma D.2 | Comparison with direct polarization | [DivideComparison](Toffoli/Divide/DivideComparison.lean) |
-| Proposition E.1 | Exact workspace-aware mixed recurrence | [BorrowedRecursion](Toffoli/Mixed/BorrowedRecursion.lean), [MixedRecurrence](Toffoli/Mixed/MixedRecurrence.lean) |
+| Theorem B.1 | Universality over odd composite alphabets | [ModularUniversality](Toffoli/Universality/ModularUniversality.lean) |
+| Corollary B.2 | Universality over finite fields | [FiniteFieldUniversality](Toffoli/Universality/FiniteFieldUniversality.lean) |
+| Theorem C.1 | Polynomial synthesis through linear powers | [PolynomialSynthesis](Toffoli/Polynomial/PolynomialSynthesis.lean) |
+| Proposition C.2 | Reduced-polynomial criterion | [PolynomialZeroSumIff](Toffoli/Polynomial/PolynomialZeroSumIff.lean), [PolynomialLowDegreeSynthesis](Toffoli/Polynomial/PolynomialLowDegreeSynthesis.lean) |
+| Corollary C.3 | Odd function synthesis | [OddFunctionAddition](Toffoli/Additions/OddFunctionAddition.lean) |
+| Proposition C.4 | Quadratic rank and synthesis count | [QuadraticAdditions](Toffoli/Quadratic/QuadraticAdditions.lean) |
+| Proposition D.1 | Optimal preparation schedule | [GroupedSchedule](Toffoli/Schedules/GroupedSchedule.lean) |
+| Lemma E.1 | Balanced grouping polynomial growth | [DividePolynomial](Toffoli/Divide/DividePolynomial.lean) |
+| Lemma E.2 | Comparison with direct polarization | [DivideComparison](Toffoli/Divide/DivideComparison.lean) |
+| Proposition F.1 | Exact workspace-aware mixed recurrence | [BorrowedRecursion](Toffoli/Mixed/BorrowedRecursion.lean), [MixedRecurrence](Toffoli/Mixed/MixedRecurrence.lean) |
